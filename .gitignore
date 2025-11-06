@@ -1,1 +1,3 @@
 notebooks/
+uv.lock
+__pycache__/
