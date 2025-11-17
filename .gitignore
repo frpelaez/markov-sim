@@ -2,3 +2,9 @@
 notebooks/
 uv.lock
 __pycache__/
+entrega.aux
+entrega.fdb_latexmk
+entrega.fls
+entrega.log
+entrega.pdf
+entrega.synctex.gz
