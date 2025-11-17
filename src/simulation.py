@@ -77,7 +77,7 @@ class Simulation:
         print(self.transition_matrix)
 
     def _show_plots(self) -> None:
-        _ = plt.figure(figsize=(15.25, 7.5))
+        _ = plt.figure(figsize=(12, 6))
         epochs = [i for i in range(0, self.steps)]
         if self.result is not None:
             for path in self.result.paths:

@@ -4,7 +4,7 @@ from simulation import Simulation
 
 
 def main():
-    trials = 15
+    trials = 25
     steps = 101
     n_states = 50
     a = np.zeros(n_states)
