@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class SimulationParameterError(Exception): ...
+class ParameterError(Exception): ...
 
 
-class SimulationInvalidDistributionError(Exception): ...
+class InvalidDistributionError(Exception): ...
 
 
 DISTRIBUTION_TOLERANCE = 1e-9
@@ -16,12 +16,22 @@ DISTRIBUTION_TOLERANCE = 1e-9
 @dataclass
 class SimulationResultWrapper:
     paths: list[list[int]]
-    final_matrix: np.ndarray
-    final_distribution: np.ndarray
+    estimated_final_distribution: np.ndarray
     # TODO: añadir más métricas que permitan analizar la cadena
 
 
 class Simulation:
+    """
+    Class to encapsulate a DTMC simulation. The user must provide the following parameters:
+    - numer of trials for the simulation (int)
+    - number of steps to run each trial (int)
+    - number of states (int)
+    - the initial probability distribution
+    - the one-epoch transition matrix
+
+    The `run` method of this class will populate an atribute called `result`. This is an object containing important information and metrics about the experiment. Some of the most important are `paths` (a lsit containing the generated trajectories) and `final_distribution` (probability distribution over the states given the transition matrix and the initial distribution).
+    """
+
     def __init__(
         self,
         trials: int,
@@ -39,15 +49,22 @@ class Simulation:
         self.result: None | SimulationResultWrapper = None
 
     def run(self, verbose: bool = False, show_plots: bool = False) -> None:
+        """
+        Runs the simulation given the initialization parameters. Can print to the screen the simulation parameters, but this is not reccomended for larger experiments. Can also generate automathic graphics to illustrate the results of the simulation.
+
+        :Parameters:
+        -verbose (bool, optional) Show the initialization parameters. Defaults to False
+        -show_plots (bool, optional) Show the generated plots. Defaults to False
+        """
         if not self._check_dimensions():
             msg = "Simulations parameters dimensions are incompatible."
             ste = f"State space has dimensions ({self.n_states},)"
             idt = f"initial distribution has dimensions ({len(self.initial_distribution)},) and"
             tmt = f"transitions matrix has dimensions {self.transition_matrix.shape}"
-            raise SimulationParameterError(" ".join([msg, ste, idt, tmt]))
+            raise ParameterError(" ".join([msg, ste, idt, tmt]))
 
         if not self._check_valid_distributions():
-            raise SimulationInvalidDistributionError(
+            raise InvalidDistributionError(
                 "Either inital distribution or transition matrix are not valid."
                 + " They must represent, row ways, probability distributions, aka add up to 1"
             )
@@ -56,17 +73,36 @@ class Simulation:
             self._print_parameters()
 
         paths = self._compute_paths()
-        final_mat, final_dist = self._calculate_distribution()
-        self.result = SimulationResultWrapper(paths, final_mat, final_dist)
+        est_final_dist = self._estimate_final_distribution()
+        self.result = SimulationResultWrapper(paths, est_final_dist)
 
         if show_plots:
             self._show_plots()
 
+    def estimate_distribution_from_initial_state(
+        self,
+        initial_state: int,
+        final_epoch: int,
+        trials: int = 1_000,
+    ) -> np.ndarray:
+        """
+        Estimates the distribution after `final_epochs` epochs starting from `initial_state` by running the simulation `trials` times
+        """
+        counts = np.zeros((self.n_states,))
+        for _ in range(trials):
+            state = initial_state
+            for _ in range(1, final_epoch):
+                state = np.random.choice(
+                    self.state_space, p=self.transition_matrix[state]
+                )
+            counts[state] += 1
+        return counts / counts.sum()
+
     def _print_parameters(self) -> None:
         print(
             """
-            --- Markov Chain Simulation ---      
-        """
+            --- Markov Chain Simulation ---
+            """
         )
         print("    - Parameters")
         print(f"              Trials: {self.trials}")
@@ -85,39 +121,37 @@ class Simulation:
 
             plt.xlabel("Step")
             plt.ylabel("State")
-            plt.xticks(epochs)
-            plt.yticks(self.state_space)
+            plt.xticks(list(range(0, self.steps, self.steps // 10)))
+            plt.yticks(list(range(0, self.n_states, self.n_states // 10)))
             plt.ylim(bottom=-1, top=len(self.state_space))
             plt.title("Markov Chain Simulation")
             plt.tight_layout()
             plt.show()
 
     def _compute_paths(self) -> list[list[int]]:
-        paths = []
-        for _ in range(self.trials):
-            path = []
+        paths = [[] for _ in range(self.trials)]
+        for i in range(self.trials):
+            path = [0 for _ in range(self.steps)]
             in_state = np.random.choice(self.state_space, p=self.initial_distribution)
-            path.append(in_state)
+            path[0] = in_state
             pv_state = in_state
-            for _ in range(1, self.steps):
+            for j in range(1, self.steps):
                 cr_state = np.random.choice(
                     self.state_space, p=self.transition_matrix[pv_state]
                 )
-                path.append(cr_state)
+                path[j] = cr_state
                 pv_state = cr_state
-            paths.append(path)
+            paths[i] = path
         return paths
 
-    def _calculate_distribution(self) -> tuple[np.ndarray, np.ndarray]:
-        mat = self.transition_matrix.copy()
-        # TODO: choricero que flipas xd
-        for _ in range(self.steps):
-            mat = np.matmul(mat, self.transition_matrix)
-        for i in range(mat.shape[0]):
-            mat[i] /= mat[i].sum()
-        final_vec = np.dot(mat, self.initial_distribution)
-        final_vec /= final_vec.sum()
-        return mat, final_vec
+    def _estimate_final_distribution(self, trials: int = 1_000) -> np.ndarray:
+        return self.estimate_distribution_from_initial_state(
+            initial_state=np.random.choice(
+                self.state_space, p=self.initial_distribution
+            ),
+            final_epoch=self.steps,
+            trials=trials,
+        )
 
     def _check_dimensions(self) -> bool:
         return self.transition_matrix.shape == (

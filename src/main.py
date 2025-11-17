@@ -5,12 +5,14 @@ from simulation import Simulation
 
 def main():
     trials = 25
-    steps = 101
-    n_states = 50
-    a = np.zeros(n_states)
-    a[15] = 1.0
+    steps = 201
+    n_states = 51
+
+    a = np.random.random(n_states)
+    a /= a.sum()
+
     t = np.zeros((n_states, n_states))
-    t[0][0] = 1
+    t[0][1] = 1
     for i in range(1, n_states - 1):
         t[i][i - 1] = 0.25
         t[i][i] = 0.25
