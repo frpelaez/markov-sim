@@ -16,7 +16,7 @@ DISTRIBUTION_TOLERANCE = 1e-9
 @dataclass
 class SimulationResultWrapper:
     paths: list[list[int]]
-    estimated_final_distribution: np.ndarray
+    estimated_final_distribution: np.ndarray | None = None
     # TODO: añadir más métricas que permitan analizar la cadena
 
 
@@ -73,8 +73,8 @@ class Simulation:
             self._print_parameters()
 
         paths = self._compute_paths()
-        est_final_dist = self._estimate_final_distribution()
-        self.result = SimulationResultWrapper(paths, est_final_dist)
+        # est_final_dist = self._estimate_final_distribution()
+        self.result = SimulationResultWrapper(paths)
 
         if show_plots:
             self._show_plots()
