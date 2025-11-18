@@ -148,7 +148,7 @@ class Simulation:
         return np.concatenate(
             [
                 self.estimate_distribution_from_initial_state(i, self.steps, trials)
-                for i in range(trials)
+                for i in range(self.n_states)
             ]
         )
 
