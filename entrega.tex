@@ -6,6 +6,14 @@
 \usepackage{amssymb}
 \usepackage{courier}
 \usepackage{color}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdfpagemode=FullScreen,
+}
 
 \definecolor{mygreen}{rgb}{0, 0.6, 0}
 \definecolor{mygray}{rgb}{0.5, 0.5, 0.5}
@@ -16,6 +24,9 @@
 \definecolor{comments}{RGB}{150, 0, 0}
 
 \lstset{ %
+  aboveskip=15pt,
+  belowskip=0pt,
+  lineskip=0pt,
   backgroundcolor=\color{background},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
   basicstyle=\footnotesize\ttfamily,      % the size of the fonts that are used for the code
   breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
@@ -26,14 +37,16 @@
   escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
   extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
   frame=single,                    % adds a frame around the code
+  frameround=tttt,
+  framesep=5pt,
   keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
   keywordstyle=\color{keywords},       % keyword style
   language=Python,                 % the language of the code
-  morekeywords={None, self, as},               % if you want to add more keywords to the set
+  morekeywords={None, self, as, ndarray},               % if you want to add more keywords to the set
   numbers=none,                    % where to put the line-numbers; possible values are (none, left, right)
-  numbersep=0pt,                   % how far the line-numbers are from the code
+  numbersep=5pt,                   % how far the line-numbers are from the code
   numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
-  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  rulecolor=\color{mygray},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
   showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
   showstringspaces=false,          % underline spaces within strings only
   showtabs=false,                  % show tabs within strings adding particular underscores
@@ -51,9 +64,11 @@
 
 \maketitle
 
-\begin{lstlisting}[title=src/simulation.py]
-    from dataclasses import dataclass
+\textbf{NOTA}: Las viñetas de código mostradas en este informe no muestran todo el código utilizado para la resolución de los ejercicios, únicamente la parte más relevante, evitando sobrecargar este documento con ciertos detalles de la implementación. En cualquier caso, el código completo puede encontrarse en el siguiente \href{https://github.com/frpelaez/markov-sim}{enlace}.
+
+\begin{lstlisting}[title=En src/simulation.py]
     import numpy as np
+    from dataclasses import dataclass
     from matplotlib import pyplot as plt  
 
     @dataclass
@@ -80,7 +95,7 @@
 
 \end{lstlisting}
 
-\begin{lstlisting}[title={src/simulation.py, después de \_\_init\_\_()}]
+\begin{lstlisting}[title={En src/simulation.py, después de \_\_init\_\_()}]
         def run(self) -> None:
             ...
             paths = self._compute_paths()
@@ -91,7 +106,7 @@
 
 \vspace{1.3cm}
 
-\begin{lstlisting}[title={src/simulation.py, después de run()}]
+\begin{lstlisting}[title={En src/simulation.py, después de run()}]
         def _compute_paths(self) -> list[list[int]]:
             paths = [[] for _ in range(self.trials)]
             for i in range(self.trials):
@@ -113,7 +128,7 @@
           return paths
 \end{lstlisting}
 
-\begin{lstlisting}[title={src/simulation.py, después de \_compute\_paths()}]
+\begin{lstlisting}[title={En src/simulation.py, después de \_compute\_paths()}]
         def _estimate_final_distribution(
             self, trials: int = 1_000
         ) -> np.ndarray:
@@ -122,12 +137,12 @@
                     self.estimate_distribution_from_initial_state(
                         i, self.steps, trials
                     )
-                    for i in range(trials)
+                    for i in range(self.n_states)
                 ]
             )
 \end{lstlisting}
 
-\begin{lstlisting}[title={src/simulation.py, después de \_estimate\_final\_distribution()}]
+\begin{lstlisting}[title={En src/simulation.py, después de \_estimate\_final\_distribution()}]
         def estimate_final_distribution_from_initial_state(
             self,
             initial_state: int,
