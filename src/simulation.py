@@ -145,12 +145,11 @@ class Simulation:
         return paths
 
     def _estimate_final_distribution(self, trials: int = 1_000) -> np.ndarray:
-        return self.estimate_distribution_from_initial_state(
-            initial_state=np.random.choice(
-                self.state_space, p=self.initial_distribution
-            ),
-            final_epoch=self.steps,
-            trials=trials,
+        return np.concatenate(
+            [
+                self.estimate_distribution_from_initial_state(i, self.steps, trials)
+                for i in range(trials)
+            ]
         )
 
     def _check_dimensions(self) -> bool:
