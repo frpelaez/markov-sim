@@ -1,3 +1,5 @@
+import itertools
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
@@ -80,7 +82,10 @@ class Simulation:
         final_dist = None
         final_mat = None
         if self._est_dist:
+            # from time import perf_counter
+            # st = perf_counter()
             final_mat = self._estimate_final_transition_matrix(trials=1000)
+            # print(f"took {perf_counter() - st:.3f}s")
             final_dist = self.initial_distribution @ final_mat
         self.result = SimulationResultWrapper(paths, final_dist, final_mat)
 
@@ -154,13 +159,47 @@ class Simulation:
             paths[i] = path
         return paths
 
+    # def _estimate_final_transition_matrix(self, trials: int = 1_000) -> np.ndarray:
+    #     return np.stack(
+    #         [
+    #             self.estimate_distribution_from_initial_state(i, self.steps, trials)
+    #             for i in range(self.n_states)
+    #         ]
+    #     )
+
     def _estimate_final_transition_matrix(self, trials: int = 1_000) -> np.ndarray:
-        return np.stack(
-            [
-                self.estimate_distribution_from_initial_state(i, self.steps, trials)
-                for i in range(self.n_states)
-            ]
-        )
+        with ProcessPoolExecutor() as executor:
+            results = list(
+                executor.map(
+                    Simulation._simulation_worker,
+                    range(self.n_states),
+                    itertools.repeat(self.steps),
+                    itertools.repeat(self.n_states),
+                    itertools.repeat(trials),
+                    itertools.repeat(self.transition_matrix),
+                    itertools.repeat(12345),
+                )
+            )
+
+        return np.stack(results)
+
+    @staticmethod
+    def _simulation_worker(
+        initial_state: int,
+        steps: int,
+        n_states: int,
+        trials: int,
+        transition_matrix: np.ndarray,
+        seed: int,
+    ) -> np.ndarray:
+        counts = np.zeros((n_states,))
+        rng = np.random.RandomState(seed=initial_state + seed)
+        for _ in range(trials):
+            state = initial_state
+            for _ in range(1, steps):
+                state = rng.choice(list(range(n_states)), p=transition_matrix[state])
+            counts[state] += 1
+        return counts / trials
 
     def _check_dimensions(self) -> bool:
         return self.transition_matrix.shape == (

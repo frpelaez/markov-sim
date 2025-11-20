@@ -29,9 +29,6 @@ def main():
           """)
     print("Final mat:\n", res.final_mat)
     print("Final dist:\n", res.final_dist)
-    for i in range(n_states):
-        dist = sim.estimate_distribution_from_initial_state(i, steps)
-        print(f"Final dist from state {i}:\n", dist)
 
     print("""
           Exacts
