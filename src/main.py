@@ -1,44 +1,51 @@
 import numpy as np
 
 from simulation import Simulation
-from utils import matpow
 
 
 def main():
-    trials = 3
-    steps = 101
-    n_states = 5
+    trials = 25
+    steps = 201
+    n_states = 51
 
-    a = np.zeros((n_states,))
-    a[0] = 1.0
+    a = np.zeros((n_states))
+    a[:10] = np.random.random(10)
+    a[:10] /= a[:10].sum()
 
     t = np.zeros((n_states, n_states))
     t[0][1] = 1
     for i in range(1, n_states - 1):
-        t[i][i - 1] = 0.33
-        t[i][i] = 0.33
+        t[i][i - 1] = 0.23
+        t[i][i] = 0.43
         t[i][i + 1] = 0.34
     t[-1][-2] = 1
 
-    sim = Simulation(trials, steps, n_states, a, t, estimate_distribution=True)
-    sim.run(verbose=False, show_plots=False)
+    estimate = False
+    show_results = False
+
+    sim = Simulation(
+        trials, steps, n_states, a, t, estimate_distribution=estimate, seed=1
+    )
+    sim.run(verbose=False, show_plots=True)
     res = sim.result
 
-    print("""
-          Estimations
-          """)
-    print("Final mat:\n", res.final_mat)
-    print("Final dist:\n", res.final_dist)
+    if estimate and show_results:
+        print(
+            """
+              Estimations
+              """
+        )
+        print("Final mat:\n", res.final_mat)
+        print("Final dist:\n", res.final_dist)
 
-    print("""
-          Exacts
-          """)
-    exact_mat = matpow(t, steps)
-    for i in range(exact_mat.shape[0]):
-        exact_mat[i] /= exact_mat[i].sum()
-    exact_dist = a @ exact_mat
-    print("Exact mat:\n", exact_mat)
-    print("Exact dist:\n", exact_dist)
+    if show_results:
+        print(
+            """
+              Exacts
+              """
+        )
+        print("Exact mat:\n", res.exact_final_mat)
+        print("Exact dist:\n", res.exact_final_dist)
 
 
 if __name__ == "__main__":

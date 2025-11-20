@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from errors import InvalidDistributionError, ParameterError
+from utils import matpow
 
 DISTRIBUTION_TOLERANCE = 1e-9
 
@@ -17,6 +18,8 @@ class SimulationResultWrapper:
     """
 
     paths: list[list[int]]
+    exact_final_dist: np.ndarray
+    exact_final_mat: np.ndarray
     final_dist: np.ndarray | None = None
     final_mat: np.ndarray | None = None
 
@@ -42,6 +45,7 @@ class Simulation:
         initial_distribution: np.ndarray,
         transition_matrix: np.ndarray,
         estimate_distribution: bool = False,
+        seed: int = 12345,
     ) -> None:
         self.trials = trials
         self.steps = steps
@@ -49,9 +53,11 @@ class Simulation:
         self.n_states = n_states
         self.initial_distribution = initial_distribution
         self.transition_matrix = transition_matrix
-        self.result: SimulationResultWrapper = SimulationResultWrapper([])
+        self.result: SimulationResultWrapper = SimulationResultWrapper(
+            [], np.array([]), np.array([])
+        )
         self._est_dist = estimate_distribution
-        self._rng = np.random.RandomState(seed=12345)
+        self._rng = np.random.RandomState(seed=seed)
 
     def run(self, verbose: bool = False, show_plots: bool = False) -> None:
         """
@@ -87,7 +93,13 @@ class Simulation:
             final_mat = self._estimate_final_transition_matrix(trials=1000)
             # print(f"took {perf_counter() - st:.3f}s")
             final_dist = self.initial_distribution @ final_mat
-        self.result = SimulationResultWrapper(paths, final_dist, final_mat)
+
+        exact_final_mat = self._calculate_exact_final_matrix()
+        exact_final_dist = self.initial_distribution @ exact_final_mat
+
+        self.result = SimulationResultWrapper(
+            paths, exact_final_dist, exact_final_mat, final_dist, final_mat
+        )
 
         if show_plots:
             self._show_plots()
@@ -158,6 +170,9 @@ class Simulation:
                 pv_state = cr_state
             paths[i] = path
         return paths
+
+    def _calculate_exact_final_matrix(self) -> np.ndarray:
+        return matpow(self.transition_matrix, self.steps)
 
     # def _estimate_final_transition_matrix(self, trials: int = 1_000) -> np.ndarray:
     #     return np.stack(
