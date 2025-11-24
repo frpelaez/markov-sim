@@ -5,12 +5,12 @@ from simulation import Simulation
 
 def main():
     trials = 25
-    steps = 201
-    n_states = 51
+    steps = 501
+    n_states = 81
 
     a = np.zeros((n_states))
-    a[:10] = np.random.random(10)
-    a[:10] /= a[:10].sum()
+    a[:1] = np.random.random(1)
+    a[:1] /= a[:1].sum()
 
     t = np.zeros((n_states, n_states))
     t[0][1] = 1
