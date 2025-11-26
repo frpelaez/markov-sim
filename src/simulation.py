@@ -88,10 +88,7 @@ class Simulation:
         final_dist = None
         final_mat = None
         if self._est_dist:
-            # from time import perf_counter
-            # st = perf_counter()
-            final_mat = self._estimate_final_transition_matrix(trials=1000)
-            # print(f"took {perf_counter() - st:.3f}s")
+            final_mat = self._estimate_final_transition_matrix(trials=5000)
             final_dist = self.initial_distribution @ final_mat
 
         exact_final_mat = self._calculate_exact_final_matrix()
@@ -173,14 +170,6 @@ class Simulation:
 
     def _calculate_exact_final_matrix(self) -> np.ndarray:
         return matpow(self.transition_matrix, self.steps)
-
-    # def _estimate_final_transition_matrix(self, trials: int = 1_000) -> np.ndarray:
-    #     return np.stack(
-    #         [
-    #             self.estimate_distribution_from_initial_state(i, self.steps, trials)
-    #             for i in range(self.n_states)
-    #         ]
-    #     )
 
     def _estimate_final_transition_matrix(self, trials: int = 1_000) -> np.ndarray:
         with ProcessPoolExecutor() as executor:

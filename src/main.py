@@ -4,13 +4,14 @@ from simulation import Simulation
 
 
 def main():
-    trials = 25
-    steps = 501
-    n_states = 81
+    trials = 31
+    steps = 701
+    n_states = 121
 
+    starting_range = 5
     a = np.zeros((n_states))
-    a[:1] = np.random.random(1)
-    a[:1] /= a[:1].sum()
+    a[:starting_range] = np.random.random(starting_range)
+    a[:starting_range] /= a[:starting_range].sum()
 
     t = np.zeros((n_states, n_states))
     t[0][1] = 1
@@ -46,6 +47,12 @@ def main():
         )
         print("Exact mat:\n", res.exact_final_mat)
         print("Exact dist:\n", res.exact_final_dist)
+
+    if res.final_mat is not None and res.final_dist is not None:
+        mat_error = np.abs(res.exact_final_mat - res.final_mat).mean()
+        dist_error = np.abs(res.exact_final_dist - res.final_dist).mean()
+        print("      Mean absolute error in matrix:", mat_error)
+        print("Mean absolute error in distribution:", dist_error)
 
 
 if __name__ == "__main__":
