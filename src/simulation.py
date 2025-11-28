@@ -101,6 +101,78 @@ class Simulation:
         if show_plots:
             self._show_plots()
 
+    @staticmethod
+    def CTMC_sim(
+        P: np.ndarray,
+        q_means: np.ndarray,
+        x0: int,
+        T: float,
+        rng: np.random.RandomState | None = None,
+    ) -> tuple[list[float], list[int]]:
+        if rng is None:
+            rng = np.random.default_rng()
+
+        P = np.asarray(P, dtype=float)
+        q_means = np.asarray(q_means, dtype=float)
+        N = P.shape[0]
+
+        if P.shape != (N, N):
+            raise ParameterError(
+                f"P must be a NxN square matrix, but got shape {P.shape}"
+            )
+        if np.any(q_means <= 0):
+            raise ParameterError("All exponential means must be positive")
+        if not (0 <= x0 < N):
+            raise ParameterError("Initial state x0 must be inside [0, N-1]")
+        if T <= 0:
+            raise ParameterError("Finla time T must be positive")
+        if np.any(np.abs(P.sum(axis=1) - 1.0) > DISTRIBUTION_TOLERANCE):
+            raise InvalidDistributionError("All the rows of P must add up to 1")
+
+        times = [0.0]
+        states = [x0]
+        t = 0.0
+        current = x0
+        while t < T:
+            dt = rng.exponential(scale=q_means[current])
+            new_t = t + dt
+            if new_t >= T:
+                times.append(T)
+                states.append(current)
+                break
+            next = rng.choice(list(range(N)), p=P[current])
+            times.append(new_t)
+            states.append(next)
+            t = new_t
+            current = next
+        return times, states
+
+    @staticmethod
+    def CTMC_state_at(t: float, times: list[float], states: list[int]) -> int:
+        if not (times[0] <= t <= times[-1]):
+            raise ParameterError("t outside of bounds")
+        n = len(times)
+        i = 0
+        while i < n - 1 and not (times[i] <= t < times[i + 1]):
+            i += 1
+        return states[i]
+
+    @staticmethod
+    def CTMC_estimate_disttribution(
+        P: np.ndarray,
+        q_means: np.ndarray,
+        x0: int,
+        T: float,
+        rng: np.random.RandomState | None = None,
+        trials: int = 1_000,
+    ) -> np.ndarray:
+        N = P.shape[0]
+        counts = np.zeros(shape=(N,))
+        for _ in range(trials):
+            _, states = Simulation.CTMC_sim(P, q_means, x0, T, rng)
+            counts[states[-1]] += 1
+        return counts / counts.sum()
+
     def estimate_distribution_from_initial_state(
         self,
         initial_state: int,
@@ -135,7 +207,7 @@ class Simulation:
         print(self.transition_matrix)
 
     def _show_plots(self) -> None:
-        _ = plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 6))
         epochs = [i for i in range(0, self.steps)]
         if self.result is not None:
             for path in self.result.paths:
