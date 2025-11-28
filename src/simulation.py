@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
+from alive_progress import alive_bar
 
 from errors import InvalidDistributionError, ParameterError
 from utils import matpow
@@ -107,6 +108,7 @@ class Simulation:
         q_means: np.ndarray,
         x0: int,
         T: float,
+        check_extintion: bool = True,
         rng: np.random.RandomState | None = None,
     ) -> tuple[list[float], list[int]]:
         if rng is None:
@@ -130,21 +132,25 @@ class Simulation:
             raise InvalidDistributionError("All the rows of P must add up to 1")
 
         times = [0.0]
-        states = [x0]
+        states = [int(x0)]
         t = 0.0
-        current = x0
+        current = int(x0)
         while t < T:
             dt = rng.exponential(scale=q_means[current])
             new_t = t + dt
+            next = rng.choice(list(range(N)), p=P[current])
             if new_t >= T:
                 times.append(T)
                 states.append(current)
                 break
-            next = rng.choice(list(range(N)), p=P[current])
+            if check_extintion and next == 0:
+                times.append(T)
+                states.append(0)
+                break
             times.append(new_t)
             states.append(next)
             t = new_t
-            current = next
+            current = int(next)
         return times, states
 
     @staticmethod
@@ -163,14 +169,21 @@ class Simulation:
         q_means: np.ndarray,
         x0: int,
         T: float,
+        check_extintion: bool = True,
         rng: np.random.RandomState | None = None,
         trials: int = 1_000,
     ) -> np.ndarray:
+        print("Estimating distribution...")
         N = P.shape[0]
         counts = np.zeros(shape=(N,))
-        for _ in range(trials):
-            _, states = Simulation.CTMC_sim(P, q_means, x0, T, rng)
-            counts[states[-1]] += 1
+        with alive_bar(trials) as bar:
+            for _ in range(trials):
+                _, states = Simulation.CTMC_sim(
+                    P, q_means, x0, T, check_extintion=check_extintion, rng=rng
+                )
+                counts[states[-1]] += 1
+                bar()
+        print("Done!")
         return counts / counts.sum()
 
     def estimate_distribution_from_initial_state(
