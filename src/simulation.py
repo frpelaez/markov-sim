@@ -108,7 +108,8 @@ class Simulation:
         q_means: np.ndarray,
         x0: int,
         T: float,
-        check_extintion: bool = True,
+        a: np.ndarray | None = None,
+        check_extinction: bool = True,
         rng: np.random.RandomState | None = None,
     ) -> tuple[list[float], list[int]]:
         if rng is None:
@@ -122,31 +123,40 @@ class Simulation:
             raise ParameterError(
                 f"P must be a NxN square matrix, but got shape {P.shape}"
             )
-        if np.any(q_means <= 0):
+        if np.any(q_means < 0):
             raise ParameterError("All exponential means must be positive")
         if not (0 <= x0 < N):
             raise ParameterError("Initial state x0 must be inside [0, N-1]")
         if T <= 0:
-            raise ParameterError("Finla time T must be positive")
+            raise ParameterError("Final time T must be positive")
         if np.any(np.abs(P.sum(axis=1) - 1.0) > DISTRIBUTION_TOLERANCE):
             raise InvalidDistributionError("All the rows of P must add up to 1")
 
+        if a is not None:
+            if len(a) != N:
+                raise ParameterError("a must be a (N,) array")
+            if np.any(np.abs(a.sum() - 1.0) > DISTRIBUTION_TOLERANCE):
+                raise InvalidDistributionError("Elements of a must add up to 1")
+            x0 = rng.choice(list(range(N)), p=a)
         times = [0.0]
         states = [int(x0)]
         t = 0.0
         current = int(x0)
         while t < T:
-            dt = rng.exponential(scale=q_means[current])
-            new_t = t + dt
+            new_t = (
+                t + rng.exponential(scale=q_means[current])
+                if q_means[current] != 0
+                else T + 1
+            )
             next = rng.choice(list(range(N)), p=P[current])
             if new_t >= T:
                 times.append(T)
                 states.append(current)
                 break
-            if check_extintion and next == 0:
-                times.append(T)
-                states.append(0)
-                break
+            # if check_extinction and next == 0:
+            #     times.append(T)
+            #     states.append(0)
+            #     break
             times.append(new_t)
             states.append(next)
             t = new_t
@@ -169,7 +179,7 @@ class Simulation:
         q_means: np.ndarray,
         x0: int,
         T: float,
-        check_extintion: bool = True,
+        check_extinction: bool = True,
         rng: np.random.RandomState | None = None,
         trials: int = 1_000,
     ) -> np.ndarray:
@@ -179,7 +189,7 @@ class Simulation:
         with alive_bar(trials) as bar:
             for _ in range(trials):
                 _, states = Simulation.CTMC_sim(
-                    P, q_means, x0, T, check_extintion=check_extintion, rng=rng
+                    P, q_means, x0, T, check_extinction=check_extinction, rng=rng
                 )
                 counts[states[-1]] += 1
                 bar()
