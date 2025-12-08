@@ -109,7 +109,6 @@ class Simulation:
         x0: int,
         T: float,
         a: np.ndarray | None = None,
-        check_extinction: bool = True,
         rng: np.random.RandomState | None = None,
     ) -> tuple[list[float], list[int]]:
         if rng is None:
@@ -153,10 +152,6 @@ class Simulation:
                 times.append(T)
                 states.append(current)
                 break
-            # if check_extinction and next == 0:
-            #     times.append(T)
-            #     states.append(0)
-            #     break
             times.append(new_t)
             states.append(next)
             t = new_t
@@ -179,7 +174,6 @@ class Simulation:
         q_means: np.ndarray,
         x0: int,
         T: float,
-        check_extinction: bool = True,
         rng: np.random.RandomState | None = None,
         trials: int = 1_000,
     ) -> np.ndarray:
@@ -188,9 +182,7 @@ class Simulation:
         counts = np.zeros(shape=(N,))
         with alive_bar(trials) as bar:
             for _ in range(trials):
-                _, states = Simulation.CTMC_sim(
-                    P, q_means, x0, T, check_extinction=check_extinction, rng=rng
-                )
+                _, states = Simulation.CTMC_sim(P, q_means, x0, T, rng=rng)
                 counts[states[-1]] += 1
                 bar()
         print("Done!")

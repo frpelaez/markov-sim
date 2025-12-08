@@ -11,11 +11,11 @@ def main() -> None:
     """
     )
     N = 100
-    beta = 2.0
+    beta = 2.5
     gamma = 1.0
 
     x0 = 1
-    T = 50.0
+    T = 10.0
     rng = np.random.default_rng()
 
     q_means = np.zeros(shape=(N + 1,))
@@ -31,15 +31,18 @@ def main() -> None:
     q_means[N] = 1 / (gamma * N)
     P[N][N - 1] = 1.0
 
-    times, states = Simulation.CTMC_sim(
-        P, q_means, x0, T, check_extinction=True, rng=rng
-    )
+    times, states = Simulation.CTMC_sim(P, q_means, x0, T, rng=rng)
 
     plt.step(times, states, where="pre")
+    plt.xlabel("Tiempo t", fontweight="bold")
+    plt.ylabel("Número de infectados I(t)", fontweight="bold")
+    plt.title("Evolución del Modelo SIS", fontsize=12, fontweight="bold")
+    plt.tight_layout()
+    plt.grid(True, alpha=0.5)
     plt.show()
 
     est_dist = Simulation.CTMC_estimate_disttribution(
-        P, q_means, x0, T, trials=100
+        P, q_means, x0, T, trials=1000
     )  # tarda un rato para trials grande
     print(
         f"Probability of epidemic ({gamma=}, {beta=}) persisting after {T=}ut:",
