@@ -38,18 +38,17 @@ def maquina() -> None:
     )
 
 
-def sis() -> None:
+def sis(beta: float, global_beta: bool, N: int = 30, T: float = 10.0) -> None:
     print(
         """
         --- Modelo de epidemias SIS ---
     """
     )
-    N = 100
-    beta = 3.0
+    if global_beta:
+        beta *= N
     gamma = 1.0
 
     x0 = 1
-    T = 10.0
     rng = np.random.default_rng()
 
     q_means = np.zeros(shape=(N + 1,))
@@ -66,9 +65,9 @@ def sis() -> None:
     P[N][N - 1] = 1.0
 
     times, states = Simulation.CTMC_sim(P, q_means, x0, T, rng=rng)
-    est_dist = Simulation.CTMC_estimate_disttribution(P, q_means, x0, T, trials=100)
+    est_dist = Simulation.CTMC_estimate_disttribution(P, q_means, x0, T, trials=1000)
     print(
-        f"Probability of epidemic ({gamma=}, {beta=}) persisting after {T=}:",
+        f"Probability of epidemic ({N=}, {T=}, {gamma=}, {beta=}) persisting:",
         1 - est_dist[0],
     )
 
